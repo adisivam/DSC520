@@ -394,4 +394,4 @@ tibble [342 x 4] (S3: tbl_df/tbl/data.frame)
     "Score": 395,
     "Section": "Sports"
   }
-] 
+]
