@@ -24,11 +24,11 @@ ggplot(heights_df, aes(x=ed, y=earn)) + geom_point()
 ## Re-create the three scatterplots and add a regression trend line using
 ## the `geom_smooth()` function
 ## `height` vs. `earn`
-ggplot(heights_df, aes(x=height, y=earn)) + geom_smooth(method=lm)
+ggplot(heights_df, aes(x=height, y=earn)) + geom_smooth(method='gam', formula = y ~ s(x, bs="cs"))
 ## `age` vs. `earn`
-ggplot(heights_df, aes(x=age, y=earn)) + geom_smooth(method=lm)
+ggplot(heights_df, aes(x=age, y=earn)) + geom_smooth(method='gam', formula = y ~ s(x, bs="cs"))
 ## `ed` vs. `earn`
-ggplot(heights_df, aes(x=ed, y=earn)) + geom_smooth(method=lm)
+ggplot(heights_df, aes(x=ed, y=earn)) + geom_smooth(method='gam', formula = y ~ s(x, bs="cs"))
 
 ## Create a scatterplot of `height`` vs. `earn`.  Use `sex` as the `col` (color) attribute
 ggplot(heights_df, aes(x=height, y=earn, col=sex)) + geom_point()
