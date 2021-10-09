@@ -42,7 +42,6 @@ housing_df %>% filter(bedrooms %in% c(3,4,5)) %>% group_by(zip5, bedrooms) %>% s
 
 ##Arrange the above result by bedrooms and AvgPrice
 housing_df %>% filter(bedrooms %in% c(3,4,5)) %>% group_by(zip5, bedrooms) %>% summarize(AvgPrice=mean(`Sale Price`), MaxPrice = max(`Sale Price`), MinPrice = min(`Sale Price`)) %>% arrange(bedrooms, zip5, desc(AvgPrice))
-housing_df %>% select(Sale.Price)
 
 #Purr package and functions
 library(purrr)
@@ -70,14 +69,15 @@ require(stringr)
 #Get month and year from Sale date
 class(housing_df$`Sale Date`)
 year <- housing_df$`Sale Date` %>% str_sub(start=1, end=4)
-year
+year[1:10]
 length(year)
-month <-  housing_df$`Sale Date` %>% str_sub(start=1, end=4)
-month
+month <-  housing_df$`Sale Date` %>% str_sub(start=6, end=7)
+month[1:10]
 length(month)
 
 housing_df$sales_month <- paste(month, year, sep='-')
 head(housing_df$sales_month)
+length(housing_df$sales_month)
 
 #House filters based on number of bedrooms
 house_cols <- housing_df %>% select(`Sale Date`,`Sale Price`, zip5, ctyname, postalctyn, square_feet_total_living, bedrooms, sq_ft_lot)
