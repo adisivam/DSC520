@@ -1,0 +1,238 @@
+---
+title: "assignment_7.2_VenkidusamyKesavAdithya"
+author: "Kesav Adithya Venkidusamy"
+date: "10/11/2021"
+output: pdf_document
+---
+
+## Student Survey Analysis
+
+## As a data science intern with newly learned knowledge in skills in statistical correlation and R programming, you will analyze the results of a survey recently given to college students. You learn that the research question being investigated is: “Is there a significant relationship between the amount of time spent reading and the time spent watching television?” You are also interested if there are other significant relationships that can be discovered? The survey data is located in this StudentSurvey.csv file.
+
+```{r}
+#Load required libraries for analysis
+library(ggplot2)
+library(dplyr)
+library(pastecs)
+
+#Create data frame for the input survey file
+stud_survey <- read.csv("E:/Personal/Bellevue University/Course/github/dsc520/data/student-survey.csv")
+
+#Print column and row names 
+print(attributes(stud_survey))
+
+#Print the dimension of the dataframe
+print(dim(stud_survey))
+
+#Calculate the str for the dataframe
+print(str(stud_survey))
+
+#Print the stats of the data
+stud_survey |> stat.desc(norm=TRUE)
+
+#TimeReading is in hours where as TimeTV is in mins. So, converting TimeReading to mins by multiplying with 60
+stud_survey_format <- stud_survey %>% mutate(TimeReadingMins = as.integer(60)*TimeReading)
+print(str(stud_survey_format))
+
+# Creating combinations of all the variables present in the data set
+
+rt <- data.frame(stud_survey_format$TimeReadingMins, stud_survey_format$TimeTV)
+rh <- data.frame(stud_survey_format$TimeReadingMins, stud_survey_format$Happiness)
+rg <- data.frame(stud_survey_format$TimeReadingMins, stud_survey_format$Gender)
+
+th <- data.frame(stud_survey_format$TimeTV, stud_survey_format$Happiness)
+tg <- data.frame(stud_survey_format$TimeTV, stud_survey_format$Gender)
+
+hg <- data.frame(stud_survey_format$Happiness, stud_survey_format$Gender)
+
+variable_combine <- list(rt, rh, rg, th, tg, hg) 
+
+
+#1. Use R to calculate the covariance of the Survey variables and provide an explanation of why you would use this calculation and what the results indicate.
+
+i = 1
+for (df in variable_combine){
+  print(paste0("The covariance for ", i ," set of variables"))
+  print(cov(df[1], df[2]))
+  i = i + 1
+}
+
+```
+## Covariance results
+
+Covariance helps to find the relation between the variables present in the data set. It is also used to measure the direction of the linear relationship between the data vectors.A positive covariance value indicates a positive linear relationship between the variables, and a negative value represents the negative linear relationship
+
+From the output, we could see the covariance is negative for almost all the pairs of variables except TimeTV and Happiness which makes sense. The increase in happiness is because of time spent on watching TV.
+
+## 2.Examine the Survey data variables. What measurement is being used for the variables? Explain what effect changing the measurement being used for the variables would have on the covariance calculation. Would this be a problem? Explain and provide a better alternative if needed.
+
+## Survey variables Analysis
+
+TimeReading - The time spend reading appears to be measured in hours. So, we have created another variable called "TimeReadingMins" to convert hours to minutes.
+
+TimeTV - The time spend on TV appears to be measured in minutes
+
+Happiness - Happiness score appears to be in the range of 0-100 as min value is 45.67 and Max value is 89.52.
+
+Gender - Gender is measured as binary; either 0 for male or female or vice versa. Need cook book for the confirmation
+
+We have changed to TimeReading in hours to mins by creating a variable called TimeReadingMins so that it would be helpful to compare it with TimeTV which is in mins.
+
+```{r}
+
+library(ggplot2)
+library(dplyr)
+
+stud_survey <- read.csv("E:/Personal/Bellevue University/Course/github/dsc520/data/student-survey.csv")
+
+#Added variable to convert TimeReading in hours to TimeReading minutes
+stud_survey_format <- stud_survey %>% mutate(TimeReadingMins = as.integer(60)*TimeReading)
+
+ggplot(stud_survey_format,aes(x=TimeReadingMins,y=TimeTV)) + geom_point()
+
+#3. Choose the type of correlation test to perform, explain why you chose this test, and make a prediction if the test yields a positive or negative correlation?
+
+#Performing Shapiro test on the data to find if the variables are normally distributed
+
+for (x in stud_survey_format) {
+  print(shapiro.test(x))
+  
+}
+
+#We will use GGally package to compare TimeTV with all other variables. Here, High positive correlation indicates a positive relationship between the variables and high negative correlation indicates a negative relationship between the variables and near zero correlation indicates no strong relationship.
+
+GGally::ggpairs(stud_survey_format[,c(2,3:5)])
+
+#Spearman correlation co-efficient would also better choice to calculate the relation between the variables
+
+# Creating combinations of all the variables present in the data set
+
+rt <- data.frame(stud_survey_format$TimeReadingMins, stud_survey_format$TimeTV)
+rh <- data.frame(stud_survey_format$TimeReadingMins, stud_survey_format$Happiness)
+rg <- data.frame(stud_survey_format$TimeReadingMins, stud_survey_format$Gender)
+
+th <- data.frame(stud_survey_format$TimeTV, stud_survey_format$Happiness)
+tg <- data.frame(stud_survey_format$TimeTV, stud_survey_format$Gender)
+
+hg <- data.frame(stud_survey_format$Happiness, stud_survey_format$Gender)
+
+variable_combine <- list(rt, rh, rg, th, tg, hg) 
+
+spearman_test <- function(df){
+  col_names <- colnames(df)
+  result <- cor.test(df[,1],df[,2], mode = 'spearman')
+  return(result)
+}
+
+for (df in variable_combine){
+  names <- colnames(df)
+  print(names)
+  print(spearman_test(df))
+}
+  
+# 4.Perform Correlation analysis
+#4.1 All Variables
+
+for (df in variable_combine){
+  print(cor(df[1],df[2],method="spearman"))
+  print("\n")
+}
+
+#4.2 A single correlation between a pair of the variables
+cor(stud_survey_format$TimeTV,stud_survey_format$Happiness, method="spearman")
+
+library(ppcor)
+pcor(stud_survey_format, method="spearman")
+
+```
+#Analysis of above results
+
+From the above result, we could interpret, TimeTV and TimeReading are having significant negative correlation. However, TimeTV and Happiness are having significant positive correlation.
+
+```{r}
+
+#4.3 Repeat your correlation test in step 2 but set the confidence interval at 99%
+
+library(ggplot2)
+library(dplyr)
+
+stud_survey <- read.csv("E:/Personal/Bellevue University/Course/github/dsc520/data/student-survey.csv")
+
+#Added variable to convert TimeReading in hours to TimeReading minutes
+stud_survey_format <- stud_survey %>% mutate(TimeReadingMins = as.integer(60)*TimeReading)
+
+# Creating combinations of all the variables present in the data set
+
+rt <- data.frame(stud_survey_format$TimeReadingMins, stud_survey_format$TimeTV)
+rh <- data.frame(stud_survey_format$TimeReadingMins, stud_survey_format$Happiness)
+rg <- data.frame(stud_survey_format$TimeReadingMins, stud_survey_format$Gender)
+
+th <- data.frame(stud_survey_format$TimeTV, stud_survey_format$Happiness)
+tg <- data.frame(stud_survey_format$TimeTV, stud_survey_format$Gender)
+
+hg <- data.frame(stud_survey_format$Happiness, stud_survey_format$Gender)
+
+variable_combine <- list(rt, rh, rg, th, tg, hg) 
+
+spearman_test2 <- function(df){
+  col_names <- colnames(df)
+  result <- cor.test(df[,1],df[,2], mode = 'spearman',exact=FALSE, conf.level = .99)
+  return(result)
+}
+
+for (df in variable_combine){
+  names <- colnames(df)
+  print(names)
+  print(spearman_test2(df))
+}
+
+#4.4 Describe what the calculations in the correlation matrix suggest about the relationship between the variables. Be specific with your explanation.
+
+cor(stud_survey_format,method="spearman")
+
+#The correlation matrix indicates a negative relationship between TimeReading and TimeTV. At the same, TimeTV and Happiness are in positive correlations. Gender here does not impact much on other variables.
+
+# 5. Calculate the correlation coefficient and the coefficient of determination, describe what you conclude about the results.
+
+cor_coeff <- cor(stud_survey_format$TimeReadingMins, stud_survey_format$TimeTV, method="spearman")
+coeff_determine <- cor_coeff^2
+print(paste0("Correlation Coefficient: ", cor_coeff))
+print(paste0("Correlation Determin: ", coeff_determine))
+
+#The correlation coefficient -.90 indicates strong negative correlation
+#However, Correlation determination values of .82 indicates Time Reading shares 82% of variability in Time TV
+
+cor_coeff <- cor(stud_survey_format$TimeTV, stud_survey_format$Happiness, method="spearman")
+coeff_determine <- cor_coeff^2
+print(paste0("Correlation Coefficient: ", cor_coeff))
+print(paste0("Correlation Determin: ", coeff_determine))
+
+#The correlation coefficient .56 indicates strong postive correlation
+#However, Correlation determination values of .82 indicates Time TV shares 32% of variability in Happiness
+
+
+```
+## 6. Based on your analysis can you say that watching more TV caused students to read less? Explain.
+
+We could confirm that Time spent on Reading is having strong negative correlation with time spent on watching TV. So, these 2 variables are having negative impact to each other
+
+
+## 7. Pick three variables and perform a partial correlation, documenting which variable you are “controlling”. Explain how this changes your interpretation and explanation of the results.
+  
+```{r}
+
+library(ggplot2)
+library(dplyr)
+
+stud_survey <- read.csv("E:/Personal/Bellevue University/Course/github/dsc520/data/student-survey.csv")
+
+pcor.test(stud_survey$TimeReading, stud_survey$TimeTV, stud_survey$Happiness, method="spearman")
+
+pcor.test(stud_survey$TimeTV, stud_survey$Happiness, stud_survey$TimeReading, method="spearman")
+
+pcor.test(stud_survey$TimeReading, stud_survey$Happiness, stud_survey$TimeTV, method="spearman")
+
+#Inference: Comparing TimeReading and TimeTV, controlling for Happiness results in a high p-value, but does not alter the significance. However, comparing TimeTV and Happiness, controlling for TimeReading produces no significant findings. Comparing TimeReading and Happiness, controlling for TimeTV produces weak correlation with an insigficant p-value 
+
+
+```
