@@ -1,0 +1,268 @@
+---
+title: "assignment_8.2_VenkidusamyKesavAdithya"
+author: "Kesav Adithya Venkidusamy"
+date: "10/24/2021"
+output: pdf_document
+---
+
+## Work individually on this assignment. You are encouraged to collaborate on ideas and strategies pertinent to this assignment. Data for this assignment is focused on real estate transactions recorded from 1964 to 2016 and can be found in Housing.xlsx. Using your skills in statistical correlation, multiple regression, and R programming, you are interested in the following variables: Sale Price and several other possible predictors.
+
+```{r}
+#Question a
+#If you worked with the Housing dataset in previous week – you are in luck, you likely have already found any issues in the dataset and made the necessary transformations. If not, you will want to take some time looking at the data with all your new skills and identifying if you have any clean up that needs to happen.
+
+#Load required libraries for analysis
+library(ggplot2)
+library(dplyr)
+library(pastecs)
+library("readxl")
+
+#Create data frame for the input survey file
+raw_housing_df <- read_excel("E:/Personal/Bellevue University/Course/github/dsc520/data/week-7-housing.xlsx")
+
+#Print column and row names 
+print(colnames(raw_housing_df))
+
+#Print the dimension of the dataframe
+print(dim(raw_housing_df))
+
+#Calculate the str for the dataframe
+print(str(raw_housing_df))
+
+# Question b
+# Explain any transformations or modifications you made to the data set
+
+#Removing unwanted columns from data frame
+remove_cols <- c(3,4,5,6,7,9,13,21,23,24)
+clean_housing_df <- select(raw_housing_df, -all_of(remove_cols))
+colnames(clean_housing_df)
+
+#Renaming the column names to remove space in the column names
+rename_housing_df <- rename(clean_housing_df, "sale_price" = "Sale Price","sale_date" = "Sale Date")
+colnames(rename_housing_df)
+head(rename_housing_df,10)
+
+# Create two variables; one that will contain the variables Sale Price and Square Foot of Lot (same variables used from previous assignment on simple regression) and one that will contain Sale Price and several additional predictors of your choice. Explain the basis for your additional predictor selections.
+#Add addition columns to calculate price_per_sq_ft and housing size
+
+housing_df <- transform(rename_housing_df,
+          price_per_sq_ft=round(sale_price/square_feet_total_living,2), 
+          housing_size=case_when(square_feet_total_living <= 1000 ~ "Tiny", 
+          square_feet_total_living > 1000 & square_feet_total_living <= 2000 ~ "Small",
+          square_feet_total_living > 2000 & square_feet_total_living <= 3000 ~ "Medium",
+          square_feet_total_living > 3000 ~ "Large"))
+
+
+colnames(housing_df)
+head(housing_df,10)
+
+library(GGally)
+ggpairs(data=housing_df,columns=c(2,7,8,9,14,15))
+
+#Observation: From the above chart, We see square_feet_total_living is having strong correlation with "Sale Price"
+
+sapply(housing_df, class)
+
+# Simple Linear Regression 
+
+price_lm <- lm(sale_price ~ sq_ft_lot, housing_df)
+price_lm
+
+zip_lm <- lm(sale_price ~ zip5, housing_df)
+zip_lm
+
+sqft_lm <- lm(sale_price ~ square_feet_total_living, housing_df)
+sqft_lm
+
+#Multiple Regression
+
+multi_lm <- lm(sale_price ~ sq_ft_lot + bath_full_count + bedrooms, housing_df)
+multi_lm
+
+multitotalsqft_lm <- lm(sale_price ~ sq_ft_lot + bath_full_count + bedrooms + square_feet_total_living, housing_df)
+multitotalsqft_lm
+
+multisqftprice_lm <- lm(sale_price ~ sq_ft_lot + bath_full_count + bedrooms + square_feet_total_living + price_per_sq_ft, housing_df)
+multisqftprice_lm
+
+
+# Execute a summary() function on two variables defined in the previous step to compare the model results. What are the R2 and Adjusted R2 statistics? Explain what these results tell you about the overall model. Did the inclusion of the additional predictors help explain any large variations found in Sale Price?
+
+summary(price_lm)
+
+summary(zip_lm)
+
+summary(sqft_lm)
+
+summary(multi_lm)
+
+summary(multitotalsqft_lm)
+
+summary(multisqftprice_lm)
+
+summary(price_lm)$r.squared
+summary(price_lm)$adj.r.squared
+
+summary(zip_lm)$r.squared
+summary(zip_lm)$adj.r.squared
+
+summary(sqft_lm)$r.squared
+summary(sqft_lm)$adj.r.squared
+
+summary(multi_lm)$r.squared
+summary(multi_lm)$adj.r.squared
+
+summary(multitotalsqft_lm)$r.squared
+summary(multitotalsqft_lm)$adj.r.squared
+
+price_summary <- housing_df |> group_by(housing_size) |> summarize(mean_by_size=mean(sale_price))
+price_summary
+
+ggplot(housing_df,aes(sale_price)) + geom_histogram(bins=30) + facet_wrap(vars(housing_size))
+
+#Oberservation: From r2 and adjusted r2, there is none of the models performed well. However, some performed well compared to others. The highest performing model was multitotalsqft_lm which used multiple predictor sq_ft_lot and square_feet_total_living to Sale Price.
+
+#Out of above 2, I see square_feet_total_living (0.206 for sqft_lm) performs significantly well compared to sq_ft_lot  0.014 for price_lm). So, it proves square_feet_total_living is better predictor.
+
+#multisqft_lm is performing well with r^2 as .2121 and adj.r^2 as .219
+
+# 4. Considering the parameters of the multiple regression model you have created. What are the standardized betas for each parameter and what do the values indicate?
+
+library(lm.beta)
+
+models <- list(price_lm, zip_lm, sqft_lm, multi_lm, multisqftprice_lm, multitotalsqft_lm)
+
+sapply(models,lm.beta)
+
+print("Multisq_lm betas")
+
+print(lm.beta(multisqftprice_lm))
+print(lm.beta(multitotalsqft_lm))
+
+#Observation: The standardized betas are the coefficient printed above. The values indicate that for ever unit increase in sale price, there is an expected .014 increase in sq_ft_lot, .07 in ball_full_count, .45 in square feet total living, bedrooms reacts negatively. 
+
+# 5. Calculate the confidence intervals for the parameters in your model and explain what the results indicate.
+
+confint(multisqftprice_lm)
+min(housing_df$sale_price)
+max(housing_df$sale_price)
+
+# Observation: Square feet total living has the best margin of error, indicating that it is the best predictor in this model 
+
+# 6.Assess the improvement of the new model compared to your original model (simple regression model) by testing whether this change is significant by performing an analysis of variance.
+
+anova(price_lm, multisqftprice_lm)
+
+#Observation: With an F score of 13007 and p-value of 2.2e-16 (much less than 0), the changes made by the model were significant
+
+# 7. Perform case wise diagnostics to identify outliers and/or influential cases, storing each function's output in a dataframe assigned to a unique variable name.
+
+residuals <- resid(multisqftprice_lm)
+stand_res <- rstandard(multisqftprice_lm)
+student_res <- rstudent(multisqftprice_lm)
+cooks_distance <- cooks.distance(multisqftprice_lm)
+dfbeta <- dfbeta(multisqftprice_lm)
+dffit <- dffits(multisqftprice_lm)
+leverage <- hatvalues(multisqftprice_lm)
+covariance_ratios <- covratio(multisqftprice_lm)
+
+diag_df <- data.frame(residuals, stand_res, student_res, cooks_distance, dfbeta, dffit, leverage, covariance_ratios)
+
+# 8. Calculate the standardized residuals using the appropriate command, specifying those that are +-2, storing the results of large residuals in a variable you create.
+
+diag_df$large.residual <- diag_df$stand_res > 2 | diag_df$stand_res < -2
+
+# 9. Use the appropriate function to show the sum of large residuals.
+
+sum(diag_df$large.residual)
+
+# 10. Which specific variables have large residuals (only cases that evaluate as TRUE)?
+
+colnames(diag_df)
+
+lrg_residuals <- diag_df[diag_df$large.residual,]
+print(nrow(lrg_residuals))
+
+#Observation: Only 356 records returned as True
+
+# 11.Investigate further by calculating the leverage, cooks distance, and covariance rations. Comment on all cases that are problematics.
+
+nrow(lrg_residuals)/nrow(housing_df)
+
+#Only 2.7% cases have absolute value
+problem <- lrg_residuals[, c("cooks_distance","leverage","covariance_ratios")]
+print(nrow(problem))
+
+print(nrow(problem))
+
+cooks_check <- problem %>% filter(cooks_distance>1)
+nrow(cooks_check)
+
+# Out of 356 rows,3 rows are having cooks distance greater than 1 which indicates influencial values. These 3 values can be removed.
+
+#Next we will check for leverage
+k = 5
+n = nrow(housing_df)
+avg_leverage = (k+1)/n
+
+
+threshold_1 <- avg_leverage*2
+threshold_2 <- avg_leverage*3
+
+r_threshold_1 <- problem[problem$leverage > threshold_1,]
+r_threshold_2 <- problem[problem$leverage > threshold_2,]
+
+print(nrow(r_threshold_1))
+
+print(nrow(r_threshold_2))
+
+#Observation, 
+#Of 356 rows, 246 are greater than double the average leverage and 181 are greater than 3 times of average leverage
+
+#Covariance ratios
+u_cvr <- 1 + threshold_2
+l_cvr <- 1 - threshold_2
+
+r_u_cvr <- problem[problem$covariance_ratios > u_cvr,]
+r_l_cvr <- problem[problem$covariance_ratios > l_cvr,]
+
+print(nrow((r_u_cvr)))
+
+print(nrow((r_l_cvr)))
+
+#Observation: There are 31 cases greater than upper covaraince and 117 rows greater than lower limits
+
+# 12. Perform the necessary calculations to assess the assumption of independence and state if the condition is met or not.
+
+library('car')
+
+dwt(multisqftprice_lm)
+
+#The condition is somewhat met since statistic value is 1.3 which is more or less greater than 1 and close to 2. 
+
+# 13. Perform the necessary calculations to assess the assumption of no multicollinearity and state if the condition is met or not.
+
+print("VIF")
+vif(multisqftprice_lm)
+
+print("Tolerance")
+1/vif(multisqftprice_lm)
+
+print("Average VIF")
+mean(vif(multisqftprice_lm))
+
+#Oberservation: The VIF values are all below 10. The tolerance statistic are above .2 and average is slightly above 1. So, there is no collinearity in the data
+
+# 14. Visually check the assumptions related to the residuals using the plot() and hist() functions. Summarize what each graph is informing you of and if any anomalies are present.
+
+plot(multisqftprice_lm)
+
+hist(diag_df$student_res)
+hist(diag_df$residuals)
+
+
+# 15.Overall, is this regression model unbiased? If an unbiased regression model, what does this tell us about the sample vs. the entire population model?
+
+#Observation: Overall, the model is biased with 356 outliers and 427 influential cases.
+
+```
