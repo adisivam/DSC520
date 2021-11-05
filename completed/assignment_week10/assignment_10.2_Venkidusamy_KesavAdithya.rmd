@@ -1,0 +1,154 @@
+---
+title: "assignment_10.2_Venkidusamy_KesavAdithya"
+author: "Kesav Adithya Venkidusamy"
+date: "11/1/2021"
+output: pdf_document
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(farff)
+library(ggplot2)
+library(coefplot)
+library(scales)
+
+thoraric_df <- readARFF('E:/Personal/Bellevue University/Course/github/dsc520/data/ThoraricSurgery.arff')
+
+head(thoraric_df,10)
+dim(thoraric_df)
+colnames(thoraric_df)
+
+#Creating test samples
+
+#Total number of rows in dataset
+n <- nrow(thoraric_df)
+
+#80% of total number of records
+n_test <- round(0.80 * n)
+
+#Create a vector of indices which is an 80% random sample
+set.seed(1)
+train_indices <- sample(1:n, n_test) 
+
+#Subset the data frame to train indices only
+train <- thoraric_df[train_indices,]
+
+#Exclude the training indices for test set
+test <- thoraric_df[-train_indices,]
+
+#Check the dimensions
+paste("Train sample ize: ", nrow(train))
+
+paste("Train sample ize: ", nrow(test))
+
+
+# 2a.Fit a binary logistic regression model to the data set that predicts whether or not the patient survived for one year (the Risk1Y variable) after the surgery. Use the glm() function to perform the logistic regression. See Generalized Linear Models for an example. Include a summary using the summary() function in your results.
+
+thoraric_mdl <- glm(Risk1Yr ~., family='binomial', data=thoraric_df)
+summary(thoraric_mdl)
+
+#Creating a model with Sample data
+
+train_mdl <- glm(Risk1Yr ~ .,data=train, family='binomial')
+summary(train_mdl)
+```
+
+# 2.b. According to the summary, which variables had the greatest effect on the survival rate?
+
+From thoraric_mdl summary, we could see DGNDGN5 variable is having smallest p-value. The variables having next  two significant p-values are PRE9F and PRE14OC14. Other variables having significant p-values are PRE17F and PRE30F.The definition of these variables are given below.
+
+1. DGNDGN5 is the diagnosis and related to multiple tumors
+2. PRE9F is shortness of breath before surgery
+3. PRE14OC14 is the size of original tumor
+
+#2.c To compute the accuracy of your model, use the dataset to predict the outcome variable. The percent of correct predictions is the accuracy of your model. What is the accuracy of your model?
+
+```{r accuracy}
+
+#Prediction for full data sets
+
+pred <- predict(thoraric_mdl, type="response")
+predicted <- round(pred)
+conf_matrix_thoraric <- table(Predicted = predicted, Reference=thoraric_df$Risk1Yr)
+accuracy_thoraric <- (conf_matrix_thoraric[1,1] + conf_matrix_thoraric[2,2]) / nrow(thoraric_df)
+
+cat("The accuracy of the model without any sampling performed: ",percent(accuracy_thoraric))
+
+#Prediction for test data
+test_pred <- predict(train_mdl, test, type="response")
+test_predicted <- round(test_pred)
+conf_matrix_test <- table(Predicted=test_predicted, Reference=test$Risk1Yr)
+accuracy_test <- (conf_matrix_test[1,1] + conf_matrix_test[2,2]) / 
+  nrow(test)
+
+cat("The accuracy of the model for sampling performed: ",percent(accuracy_test))
+```
+
+
+#Part 2
+
+# a. Fit a logistic regression model to the binary-classifier-data.csv dataset. 
+# b.The dataset (found in binary-classifier-data.csv) contains three variables; label, x, and y. The label variable is either 0 or 1 and is the output we want to predict using the x and y variables.
+
+```{r binary}
+
+binary_df <- read.csv("E:/Personal/Bellevue University/Course/github/dsc520/data/binary-classifier-data.csv")
+dim(binary_df)
+
+#Create Sample rows
+binary_row <- nrow(binary_df)
+
+#Creating 80% of the rows for training sample
+binary_sample_row <- round(0.80 * binary_row)
+
+#Create a vector of indices with 80% sample
+set.seed(1)
+binary_train_indices <- sample(1:binary_row, binary_sample_row)
+
+#Subset of data frame to training indices
+binary_train <-binary_df[binary_train_indices,]
+
+#Subset excluding training indices
+binary_test <- binary_df[-binary_train_indices,]
+
+#Check the dimensions
+paste("Training sample size: ",nrow(binary_train))
+
+paste("Test sample size: ", nrow(binary_test))
+
+#Model for complete dataset
+binary_mdl <- glm(label ~ x+y,data = binary_df, family=binomial(link="logit"))
+summary(binary_mdl)
+
+#Observation: y has significant p-value where as x does not have.
+
+
+
+#Modeling with Sample data
+
+binary_train_mdl <- glm(label ~ ., data=binary_train, family="binomial")
+summary(binary_train_mdl)
+
+#2.ii.What is the accuracy of the logistic regression classifier?
+
+#Prediction on unsample data
+
+binary_pred <- predict(binary_mdl, type="response")
+binary_predicted <- round(binary_pred)
+binary_conf_matrix <- table(Predicted=binary_predicted,Reference=binary_df$label)
+
+accuracy_binary <- (binary_conf_matrix[1,1] + binary_conf_matrix[2,2]) / nrow(binary_df)
+cat("Accuracy of binary model for the whole dataset: ", percent(accuracy_binary))
+
+#Prediction on sample data
+
+test_binary_pred <- predict(binary_train_mdl, binary_test, type="response")
+test_binary_predicted <- round(test_binary_pred)
+test_binary_conf_matrix <- table(Predicted=test_binary_predicted,Reference=binary_test$label)
+
+test_accuracy_binary <- (test_binary_conf_matrix[1,1] + test_binary_conf_matrix[2,2]) / nrow(binary_test)
+cat("Accuracy of binary model for the whole dataset: ", percent(test_accuracy_binary))
+
+
+```
