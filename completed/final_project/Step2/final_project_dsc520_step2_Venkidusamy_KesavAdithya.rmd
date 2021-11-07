@@ -1,0 +1,416 @@
+---
+title: "Final_Project_Step 2"
+author: "Kesav Adithya Venkidusamy"
+date: "11/7/2021"
+output: pdf_document
+---
+
+# *Import data sets and perform cleaning*
+
+Importing and Cleaning the data would be the fist step in data modeling. As provided in Step 1, I am going to use below CDC data set for this project.
+
+* Provisional COVID-19 deaths by week, sex and age
+  + Data as of – Date of Analysis
+  + State - Jurisdiction of occurrence
+  +	MMWR Week – MMWR week number
+  +	End Week - Last week-ending date of data period
+  +	Sex - Sex
+  +	Age Group - Age group
+  +	Total Deaths – Deaths from all causes of deaths
+  +	COVID-19 Deaths - Deaths Involving COVID-19
+
+* Conditions contributing to COVID-19 deaths, by state and age, provisional 2020-21
+  +	Start Date - First week-ending date of data period
+  +	End Date - Last week-ending date of data period
+  +	Group - Time-period Indicator for record: by Month, by Year, Total
+  +	State - Jurisdiction of occurrence 
+  +	Condition - Condition contributing to deaths involving COVID-19
+  +	Age Group - Age group
+  +	COVID-19 Deaths - COVID 19 Deaths
+
+The data sets contain duplicates across many columns such as state, sex and age group. So, as part of importing and cleaning step, the below filters are applied on the below columns to get the unique records in "Provisional COVID-19 deaths by week, sex and age" data set.
+
+1. state = "United States"
+2. Sex = "All Sex"
+3. Age Group in  ("Under 1 year","1-4 Years","5-14 Years","15-24 Years","25-34 Years","35-44 Years","45-54 Years","55-64 Years","65-74 Years","75-84 Years","85 Years and Over"). 
+4. End Week greater than 2020-04-01
+
+Below filters will be applied on the data set "Conditions contributing to COVID-19 deaths, by state and age, provisional 2020-21" to select unique records
+
+1. Start Date greater than 2020-04-01 to 2021-08-01
+2. Group = "By Month"
+3. State = "United States"
+4. Age Group in ("0-24","25-34","35-44","45-54","55-64","65-74","75-84",85+")
+
+Actual impact due to Covid-19 started from the Month of April 2020. So, the filter condition is applied on end week field to select the data from April 2020 to August 2021.
+
+In addition, we are also importing vaccine and symptom data set from VARES to see if there is any impact due to vaccination.
+
+```{r lib}
+knitr::opts_chunk$set(echo = TRUE)
+
+#Importing libraries required for this project
+
+library(readxl)
+library(dplyr)
+library(broom)
+library(ggplot2)
+library(GGally)
+library(coefplot)
+library(knitr)
+```
+
+# **Data sets**
+
+## Importing data sets
+
+```{r datasets}
+
+covid19_week <- read.csv("Provisional_COVID-19_Deaths_by_Week_Sex_and_Age.csv")
+covid19_condition <- read.csv("COVID-19_Deaths_by_State_and_Age.csv")
+data20 <- read.csv("2020VAERSDATA.csv")
+data21 <- read.csv("2021VAERSDATA.csv")
+symptoms20 <- read.csv("2020VAERSSYMPTOMS.csv")
+symptoms21 <- read.csv("2021VAERSSYMPTOMS.csv")
+vaccine20 <- read.csv("2020VAERSVAX.csv")
+vaccine21 <- read.csv("2021VAERSVAX.csv")
+
+```
+
+
+## Cleaning the data sets
+
+```{r dataclean}
+
+#Columns present in weekly covid-19 death data set
+colnames(covid19_week)
+dim(covid19_week)
+
+#Columns present in covid-19 death occurred due to underlying condition 
+colnames(covid19_condition)
+dim(covid19_condition)
+
+#Applying filter to the data sets as defined above
+covid19_week_filter <- covid19_week %>% filter(State == "United States" & Sex == "All Sex" & Age.Group != "All Ages") 
+dim(covid19_week_filter)
+
+covid19_cond_filter <- covid19_condition %>% filter(State == "United States" & Group == "By Month" & Age.Group != "All Ages" & Age.Group != "Not stated")
+dim(covid19_cond_filter)
+
+#Removing unwanted columns that are not required for the analysis
+covid19_week_cols <- c(2,4,5,6,8)
+covid19_week_final <- covid19_week_filter[,covid19_week_cols]
+colnames(covid19_week_final)
+
+covid19_condition_cols <- c(2,3,5,6,7,8,11,12)
+covid19_condition_final <- covid19_cond_filter[,covid19_condition_cols]
+colnames(covid19_condition_final)
+
+#Merge data sets by year for VARES
+merged_vaccine_20 <- merge(data20, symptoms20)
+merged_vaccine_20 <- merge(merged_vaccine_20, vaccine20)
+dim(merged_vaccine_20)
+colnames(merged_vaccine_20)
+
+merged_vaccine_21 <- merge(data21, symptoms21)
+merged_vaccine_21 <- merge(merged_vaccine_21, vaccine21)
+dim(merged_vaccine_21)
+colnames(merged_vaccine_21)
+
+#Cleaning VARES data set. From the entire data set, We have to choose vaccines given for COVID-19 only. So, Applying the filter to filter covid-19 records
+
+filter_vaccine_20 <- filter(merged_vaccine_20, grepl("COVID19", merged_vaccine_20$VAX_TYPE))
+filter_vaccine_21 <- filter(merged_vaccine_21, grepl("COVID19", merged_vaccine_21$VAX_TYPE))
+
+#Removing unwanted columns from the data set
+vaccine_cols <- c(1,3,4,7,9,10,12,21,23,28,35,36,38,40,42,44,46,47,48,49,52)
+
+vaccine_20_final <- filter_vaccine_20[,vaccine_cols]
+vaccine_21_final <- filter_vaccine_21[,vaccine_cols]
+colnames(vaccine_20_final)
+colnames(vaccine_21_final)
+
+```
+
+# *Final data set*
+
+```{r finaldata}
+
+#The final data sets after cleaning and before slicing and dicing
+#covid-19 weekly death count by Age
+print(str(covid19_week_final))
+
+#Covid-19 monthly deaths by age with underlying condition
+print(str(covid19_condition_final))
+
+#Covid-19 Vaccine data for 2020 and 2021
+print(str(vaccine_20_final))
+print(str(vaccine_21_final))
+
+```
+
+## Adding additional variable to final data sets
+
+I will be adding a variable called people to covid19_weekly data set which tells if the people is young or old based on the age. In addition, I will be adding a variable called "condition_flag" to covid19_condition data set which tells if the people had underlying conditions.
+
+
+```{r enhancedataset}
+
+old <- c("55-64 Years","65-74 Years","75-84 Years","85 Years and Over")
+covid19_week_final$people <- ifelse(covid19_week_final$Age.Group %in% old, "Old", "Young") 
+colnames(covid19_week_final)
+print(str(covid19_week_final))
+
+covid19_condition_final$condition_flag <- ifelse(covid19_condition_final$Condition.Group == "COVID-19","No","Yes")
+print(str(covid19_condition_final))
+
+```
+
+# *Data sets analysis by slice and dice*
+
+## Covid-19 Weekly death data set
+
+```{r analysis}
+
+covid19_week_final$COVID.19.Deaths <- as.numeric(covid19_week_final$COVID.19.Deaths)
+print(str(covid19_week_final,10))
+
+#Total deaths by Covid-19 for Young and old People
+covid19_week_final %>% group_by(people) %>% summarise(COVID19_Deaths=sum(COVID.19.Deaths, na.rm = TRUE))
+
+#Slicing the data set based on People (Young and Old)
+covid19_week_young <- filter(covid19_week_final, people=="Young" & COVID.19.Deaths>0)
+dim(covid19_week_young)
+
+covid19_week_old <- filter(covid19_week_final, people=="Old" & COVID.19.Deaths>0)
+dim(covid19_week_old)
+
+#Printing the total number of deaths for young and old people
+cat("Total number of covid-19 deaths for young people: ",sum(covid19_week_young$COVID.19.Deaths))
+cat("Total number of covid-19 deaths for old people: ",sum(covid19_week_old$COVID.19.Deaths))
+
+#Histograms on covid-19 death for young and old people
+ggplot(covid19_week_young, aes(COVID.19.Deaths)) + geom_histogram(bins=30)
+ggplot(covid19_week_old, aes(COVID.19.Deaths)) + geom_histogram(bins=30)
+
+#Summary of weekly covid-19 deaths data set
+summary(covid19_week_young)
+summary(covid19_week_old)
+
+cat("The variance of death count for young people: ", var(covid19_week_young$COVID.19.Deaths))
+cat("The standard deviation of death count for young people: ", sd(covid19_week_young$COVID.19.Deaths))
+
+cat("The variance of death count for old people: ", var(covid19_week_old$COVID.19.Deaths))
+cat("The standard deviation of death count for old people: ", sd(covid19_week_old$COVID.19.Deaths))
+
+
+```
+
+## Observation
+The death count of young people (age < 55) is less compared to old people (age >= 55). The death count during the initial months were less as Covid-19 infection started spreading and peaked in the later months on 2020 and initial months of 2021, and again started going down from middle of 2021 due to vaccinations.
+
+The histogram for the Covid-19 deaths for young people is positively skewed distribution whereas the historgram for the Covid-19 deaths for old people is also postively skewed distribution but shows some pattern for multiple distribution as well.
+
+## Covid-19 death underlying condition
+
+```{r condition}
+
+#Converting datatype to numeric 
+covid19_condition_final$COVID.19.Deaths <- as.numeric(covid19_condition_final$COVID.19.Deaths)
+print(str(covid19_condition_final))
+
+#Slicing the data set based on People with and without condition
+covid19_condition_no <- filter(covid19_condition_final, condition_flag=="No" & COVID.19.Deaths>0)
+dim(covid19_condition_no)
+
+covid19_condition_yes <- filter(covid19_condition_final, condition_flag=="Yes" & COVID.19.Deaths>0)
+dim(covid19_condition_yes)
+
+#Printing the total number of deaths for young and old people
+cat("Total number of covid-19 deaths for the people without underlying condition: ",sum(covid19_condition_no$COVID.19.Deaths))
+cat("Total number of covid-19 deaths for the people with underlying condition: ",sum(covid19_condition_yes$COVID.19.Deaths))
+
+#Histograms on covid-19 death for young and old people
+ggplot(covid19_condition_no, aes(COVID.19.Deaths)) + geom_histogram(bins=30)
+ggplot(covid19_condition_yes, aes(COVID.19.Deaths)) + geom_histogram(bins=30)
+
+#Summary of covid-19 deaths
+summary(covid19_condition_no)
+summary(covid19_condition_yes)
+
+cat("The variance of death count for the people without underlying condition: ", var(covid19_condition_no$COVID.19.Deaths))
+cat("The standard deviation of death count for the people without underlying condition: ", sd(covid19_condition_no$COVID.19.Deaths))
+
+cat("The variance of death count for the people with underlying condition: ", var(covid19_condition_yes$COVID.19.Deaths))
+cat("The standard deviation of death count for the people with underlying condition: ", sd(covid19_condition_yes$COVID.19.Deaths))
+
+```
+
+## Observation
+The death count of the people without any underlying condition is less compared to those people with underlying condition. 
+
+The histograms for the Covid-19 deaths for the people with and without underlying conditions are positively skewed distribution. This is because the covid-19 death count is high during 2020 and 1st quarter of 2021. From 2nd quater of 2021, the count started decreasing. 
+
+## Vaccine data sets
+
+```{r vaccine}
+
+#Combining vaccine data for both 2020 and 2021
+vaccine_df <- union(vaccine_20_final, vaccine_21_final)
+
+#Age Analysis
+age_variable <- vaccine_df[-is.na(vaccine_df$AGE_YRS)]
+age_hist <- ggplot(vaccine_df, aes(AGE_YRS)) + geom_histogram(bins=30)
+age_hist
+
+#Death data analysis
+
+vaccine_died <- dplyr::filter(vaccine_df, grepl("Y",vaccine_df$DIED))
+colnames(vaccine_died)
+vaccine_died_nodup <- vaccine_died |> dplyr::distinct(VAERS_ID, .keep_all = TRUE) 
+dim(vaccine_died_nodup)
+
+cat("Total number of people died after taking vaccine: ", length(unique(vaccine_died$VAERS_ID)))
+
+#Splitting the data set into young and old based on age. 
+vaccine_died_young <- filter(vaccine_died, AGE_YRS<55)
+dim(vaccine_died_young)
+cat("Total number of young people died after taking vaccine: ", length(unique(vaccine_died_young$VAERS_ID)))
+
+vaccine_died_old <- filter(vaccine_died, AGE_YRS>=55)
+dim(vaccine_died_old)
+cat("Total number of old people died after taking vaccine: ", length(unique(vaccine_died_old$VAERS_ID)))
+
+
+```
+
+## Observation
+The vaccine data set also shows the death count of the people having young age (less than 54) is less compared to the old people having age greater than 55. 
+
+# *Information not self-evident*
+
+It is important to know that the number of covid-19 deaths reported in CDC and VAERS data sets may not be 100% correct. Only the deaths occurred in hospital and confirmed by doctors are reported.
+
+In addition, the number of records present in data set are not necessarily the number of people affected. Looking at the number of unique VAERS_ID is the correct way to see the number of people affected by Covid-19
+
+# *Different ways to look at the data*
+
+Some of the different ways to look at the data set
+
+* Provisional COVID-19 deaths by week, sex and age
+  + Age
+  + Week
+  + Covid-19 Deaths
+  + People (derived variable based on age of the people)
+  
+* Conditions contributing to COVID-19 deaths, by state and age, provisional 2020-21
+  + Age
+  + Condition.Group 
+  + Covid-19 Deaths
+  + condition_flag (derived variable based on condition.group)
+  
+* Vaccine data sets
+  + Age
+  + Died
+  + VAERS_ID
+
+
+# *Summarize data to answer key questions*
+
+Lot of key questions related to these data sets can be answered with simple functions and plots available in R. Below are the few questions.
+
+## What is the average death due to covid-19 for young and old people?
+
+* Average covid-19 death count for young people: 109.6
+* Average covid-19 death count for old people: 514.4
+
+## What is the variance and standard deviation of covid-19 death for young and old people?
+
+* The variance and standard deviation of covid-19 death count for young people: 30973.93 and 175.9941
+* The variance and standard deviation of covid-19 death count for old people: 99185.96 and 314.938
+ 
+## What is the average death due to covid-19 for the people with and without underlying condition? 
+
+* Average covid-19 death count for the people without underlying condition: 164
+* Average covid-19 death count for the people with underlying condition: 210
+
+## What is the variance and standard deviation of covid-19 death for the people with and without underlying condition?
+
+* The variance and standard deviation of covid-19 death for the people without underlying condition: 68582.8 and 261.8832
+* The variance and standard deviation of covid-19 death for the people with underlying condition: 61526.05 and 248.0445
+
+## What role age played in covid-19 deaths?
+
+```{r summary}
+
+#Calculate total deaths by age
+cat("Number of covid-19 deaths by age group:\n")
+covid19_week_final %>% group_by(Age.Group) %>% summarise(COVID19_Deaths=sum(COVID.19.Deaths, na.rm = TRUE))
+
+#Filtering the data till Aug 2021 and applying group by to calculate total deaths by end week
+cat("Number of covid-19 deaths by week:\n")
+covid19_week_final %>% filter(as.Date(End.Week, format= "%m/%d/%Y") < "2021-09-01") %>% group_by(as.Date(End.Week, format= "%m/%d/%Y")) %>% summarise(COVID19_Deaths=sum(COVID.19.Deaths, na.rm = TRUE))
+
+```
+
+
+## What role underlying condition played in covid-19 deaths?
+
+```{r under}
+
+#Total deaths by Covid-19 for the people with and without underlying condition
+cat("Number of deaths by underlying condition: \n")
+covid19_condition_final %>% group_by(condition_flag) %>% summarise(COVID19_Deaths=sum(COVID.19.Deaths, na.rm = TRUE))
+
+#Death count by underlying condition
+cat("Number of covid-19 deaths by underlying condition")
+covid19_condition_yes %>% group_by(Condition.Group) %>% summarise(COVID19_Deaths=sum(COVID.19.Deaths, na.rm = TRUE))
+
+```
+
+## Number of covid-19 deaths after taking vaccine by age and manufacture?
+
+```{r vaccine_analysis}
+cat("Number of covid-19 deaths after taking vaccination by age")
+death_age <- table(vaccine_died$AGE_YRS)
+print(death_age)
+
+
+cat("Number of covid-19 deaths after taking vaccination by manufacture")
+death_type <- table(vaccine_died$VAX_MANU)
+print(death_type)
+
+cat("Number of covid-19 deaths after taking vaccination by state")
+death_state <- table(vaccine_died$STATE)
+print(death_state)
+
+```
+
+# *Plots and Tables*
+
+* Histogram - Look at the distribution of data for specific variables
+* Scatterplots - Identify relationships between the variables
+* Residual plots - Look for outliers in the distribution
+* Density plots - Observe smoothed distributions to check assumptions
+* Box plots - Look for outliers in the distribution
+* Tables
+  + - Covid Deaths by Age
+  + - Covid Deaths by underlying condition
+  + - Vairables used
+  + - Covid deaths by Age
+  + - Covid deaths by manufacture
+  + - Covid deaths by State
+
+# *Machine Learning*
+
+I do not plan to use any machine learning techniques at this time
+
+# *Questions*
+
+* I have done the analysis on Covid-19 deaths by age and underlying condition for Unites  States as a whole. I want to do research on covid-19 deaths by age for each state present in United States, and find out which State shows high and low count. 
+
+* In addition, I would want to analyze the percentage of vaccines given across the states and check for correlations between number of vaccine and deaths. However, I am unsure of how far I will get due to limitations in data. 
+
+* I would also want to apply PMF and CDF on the data to find the distribution of discrete random variable and continuous random variables.
+
+* I also want to apply some machine learning techniques on the data sets 
