@@ -1,0 +1,379 @@
+---
+title: "Assignment_11.2_Venkidusamy_KesavAdithya"
+author: "Kesav Adithya Venkidusamy"
+date: "11/13/2021"
+output: pdf_document
+---
+
+```{r libraries}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(class)
+library(useful)
+library(scales)
+
+```
+
+# Binary Data
+
+```{r data}
+
+binary_df <- read.csv("E:/Personal/Bellevue University/Course/github/dsc520/data/binary-classifier-data.csv")
+head(binary_df)
+
+# Total number of records present in the data set
+nrow(binary_df)
+
+#Plot the data set using ggplot function
+ggplot(binary_df, aes(x=x, y=y)) + geom_point()
+
+```
+
+## Create Sample data
+
+```{r sample}
+
+nrow_binary_df <- nrow(binary_df)
+
+#Considering 80% for training sample
+nrow_binary_sample_df <- round(0.8 * nrow_binary_df)
+
+#Creating a vector which is an 80% random sample
+set.seed(1)
+binary_sample_indices <- sample(1:nrow_binary_df, nrow_binary_sample_df)
+
+# Subset the data frame to training indices
+binary_train_df <- binary_df[binary_sample_indices,]
+
+#Creating test data
+binary_test_df <- binary_df[-binary_sample_indices,]
+
+```
+
+# Nearest neighbor algrithm
+
+## k=3
+
+```{r knn_3}
+
+knn_3 <- knn(train=binary_train_df, test=binary_test_df, cl=binary_train_df$label, k=3)
+cm_3 <- table(binary_test_df$label, knn_3)
+cm_3
+
+mc_err_3 <- mean(knn_3 != binary_test_df$label)
+acc_03 <- (1 - mc_err_3)
+cat("Accuracy with k=3 is: ", percent(acc_03))
+
+```
+
+## k=5
+
+```{r knn_5}
+
+knn_5 <- knn(train=binary_train_df, test=binary_test_df, cl=binary_train_df$label, k=5)
+cm_5 <- table(binary_test_df$label, knn_5)
+cm_5
+
+mc_err_5 <- mean(knn_5 != binary_test_df$label)
+acc_05 <- (1 - mc_err_5)
+cat("Accuracy with k=5 is: ", percent(acc_05))
+
+```
+
+## k=10
+
+```{r knn_10}
+
+knn_10 <- knn(train=binary_train_df, test=binary_test_df, cl=binary_train_df$label, k=10)
+cm_10 <- table(binary_test_df$label, knn_10)
+cm_10
+
+mc_err_10 <- mean(knn_10 != binary_test_df$label)
+acc_10 <- (1 - mc_err_10)
+cat("Accuracy with k=10 is: ", percent(acc_10))
+
+```
+
+## k=15
+
+```{r knn_15}
+
+knn_15 <- knn(train=binary_train_df, test=binary_test_df, cl=binary_train_df$label, k=15)
+cm_15 <- table(binary_test_df$label, knn_15)
+cm_15
+
+mc_err_15 <- mean(knn_15 != binary_test_df$label)
+acc_15 <- (1 - mc_err_15)
+cat("Accuracy with k=15 is: ", percent(acc_15))
+
+```
+
+## k=20
+
+```{r knn_20}
+
+knn_20 <- knn(train=binary_train_df, test=binary_test_df, cl=binary_train_df$label, k=20)
+cm_20 <- table(binary_test_df$label, knn_20)
+cm_20
+
+mc_err_20 <- mean(knn_20 != binary_test_df$label)
+acc_20 <- (1 - mc_err_20)
+cat("Accuracy with k=20 is: ", percent(acc_20))
+
+```
+
+## k=25
+
+```{r knn_25}
+
+knn_25 <- knn(train=binary_train_df, test=binary_test_df, cl=binary_train_df$label, k=25)
+cm_25 <- table(binary_test_df$label, knn_25)
+cm_25
+
+mc_err_25 <- mean(knn_25 != binary_test_df$label)
+acc_25 <- (1 - mc_err_25)
+cat("Accuracy with k=25 is: ", percent(acc_25))
+
+```
+
+# Plot the accuracy and k values
+
+```{r k_plot}
+
+k_vals <- c(3,5,10,15,20,25)
+acc_list <- ls(pattern="acc_\\d")
+acc_vals <- sapply(acc_list, function(x) parse(text=x))
+plot_vals <- as.data.frame(cbind(unlist(data.frame(as.list(acc_vals))), k_vals))
+acc_vals
+colnames(plot_vals) <- c("Accuracy", "K_Values")
+plot_vals <- transform(plot_vals, Accuracy=as.numeric(Accuracy))
+plot_vals <- transform(plot_vals, Accuracy=round(Accuracy, digits=2))
+plot_vals
+
+ggplot(plot_vals, aes(x=Accuracy, y =K_Values))+geom_point()
+
+```
+
+# Trinary Data
+
+```{r trinary}
+
+trinary_df <- read.csv("E:/Personal/Bellevue University/Course/github/dsc520/data/trinary-classifier-data.csv")
+head(trinary_df)
+
+# Total number of records present in the data set
+nrow(trinary_df)
+
+#Plot the data set using ggplot function
+ggplot(trinary_df, aes(x=x, y=y)) + geom_point()
+
+```
+
+## Create Sample data for Trinary data
+
+```{r tri_sample}
+
+nrow_trinary_df <- nrow(trinary_df)
+
+#Considering 80% for training sample
+nrow_trinary_sample_df <- round(0.8 * nrow_trinary_df)
+
+#Creating a vector which is an 80% random sample
+set.seed(1)
+trinary_sample_indices <- sample(1:nrow_trinary_df, nrow_trinary_sample_df)
+
+# Subset the data frame to training indices
+trinary_train_df <- trinary_df[trinary_sample_indices,]
+
+#Creating test data
+trinary_test_df <- trinary_df[-trinary_sample_indices,]
+
+```
+
+# Nearest neighbor algrithm
+
+## k=3
+
+```{r t_knn_3}
+
+knn_3 <- knn(train=trinary_train_df, test=trinary_test_df, cl=trinary_train_df$label, k=3)
+cm_3 <- table(trinary_test_df$label, knn_3)
+cm_3
+
+mc_err_3 <- mean(knn_3 != trinary_test_df$label)
+acc_03 <- (1 - mc_err_3)
+cat("Accuracy with k=3 is: ", percent(acc_03))
+
+```
+
+## k=5
+
+```{r t_knn_5}
+
+knn_5 <- knn(train=trinary_train_df, test=trinary_test_df, cl=trinary_train_df$label, k=5)
+cm_5 <- table(trinary_test_df$label, knn_5)
+cm_5
+
+mc_err_5 <- mean(knn_5 != trinary_test_df$label)
+acc_05 <- (1 - mc_err_5)
+cat("Accuracy with k=5 is: ", percent(acc_05))
+
+```
+
+## k=10
+
+```{r t_knn_10}
+
+knn_10 <- knn(train=trinary_train_df, test=trinary_test_df, cl=trinary_train_df$label, k=10)
+cm_10 <- table(trinary_test_df$label, knn_10)
+cm_10
+
+mc_err_10 <- mean(knn_10 != trinary_test_df$label)
+acc_10 <- (1 - mc_err_10)
+cat("Accuracy with k=10 is: ", percent(acc_10))
+
+```
+
+## k=15
+
+```{r t_knn_15}
+
+knn_15 <- knn(train=trinary_train_df, test=trinary_test_df, cl=trinary_train_df$label, k=15)
+cm_15 <- table(trinary_test_df$label, knn_15)
+cm_15
+
+mc_err_15 <- mean(knn_15 != trinary_test_df$label)
+acc_15 <- (1 - mc_err_15)
+cat("Accuracy with k=15 is: ", percent(acc_15))
+
+```
+
+## k=20
+
+```{r t_knn_20}
+
+knn_20 <- knn(train=trinary_train_df, test=trinary_test_df, cl=trinary_train_df$label, k=20)
+cm_20 <- table(trinary_test_df$label, knn_20)
+cm_20
+
+mc_err_20 <- mean(knn_20 != trinary_test_df$label)
+acc_20 <- (1 - mc_err_20)
+cat("Accuracy with k=20 is: ", percent(acc_20))
+
+```
+
+## k=25
+
+```{r t_knn_25}
+
+knn_25 <- knn(train=trinary_train_df, test=trinary_test_df, cl=trinary_train_df$label, k=25)
+cm_25 <- table(trinary_test_df$label, knn_25)
+cm_25
+
+mc_err_25 <- mean(knn_25 != trinary_test_df$label)
+acc_25 <- (1 - mc_err_25)
+cat("Accuracy with k=25 is: ", percent(acc_25))
+
+```
+
+# Plot the accuracy and k values
+
+```{r t_k_plot}
+
+k_vals <- c(3,5,10,15,20,25)
+acc_list <- ls(pattern="acc_\\d")
+acc_vals <- sapply(acc_list, function(x) parse(text=x))
+plot_vals <- as.data.frame(cbind(unlist(data.frame(as.list(acc_vals))), k_vals))
+colnames(plot_vals) <- c("Accuracy", "K_Values")
+plot_vals <- transform(plot_vals, Accuracy=as.numeric(Accuracy))
+plot_vals <- transform(plot_vals, Accuracy=round(Accuracy, digits=2))
+plot_vals
+
+ggplot(plot_vals, aes(x=Accuracy, y =K_Values))+geom_point()
+
+```
+
+# Clustering
+
+```{r cluster}
+
+cluster_df <- read.csv("E:/Personal/Bellevue University/Course/github/dsc520/data/clustering-data.csv")
+
+cat("Total number of records: ",nrow(cluster_df))
+head(cluster_df)
+
+ggplot(cluster_df, aes(x=x,y=y)) + geom_point()
+
+```
+
+# K-mean plot for K=2 to 12
+
+```{r cluster_kplot}
+
+for (x in 2:12){
+  print(paste0("k-means algorithm creating variable k", x))
+  assign(paste0("k",x),kmeans(cluster_df, centers=x))
+  
+}
+
+```
+
+# Display k-means cluster
+
+```{r kdisplay}
+
+k2_cluster <- useful::plot.kmeans(k2, data=cluster_df)
+k3_cluster <- useful::plot.kmeans(k3, data=cluster_df)
+k4_cluster <- useful::plot.kmeans(k4, data=cluster_df)
+k5_cluster <- useful::plot.kmeans(k5, data=cluster_df)
+k6_cluster <- useful::plot.kmeans(k6, data=cluster_df)
+k7_cluster <- useful::plot.kmeans(k7, data=cluster_df)
+k8_cluster <- useful::plot.kmeans(k8, data=cluster_df)
+k9_cluster <- useful::plot.kmeans(k9, data=cluster_df)
+k10_cluster <- useful::plot.kmeans(k10, data=cluster_df)
+k11_cluster <- useful::plot.kmeans(k11, data=cluster_df)
+k12_cluster <- useful::plot.kmeans(k12, data=cluster_df)
+
+print(k2_cluster)
+print(k3_cluster)
+print(k4_cluster)
+print(k5_cluster)
+print(k6_cluster)
+print(k7_cluster)
+print(k8_cluster)
+print(k9_cluster)
+print(k10_cluster)
+print(k11_cluster)
+print(k12_cluster)
+
+```
+
+## Accuracy for k-mean values
+
+```{r accuracy}
+
+for (x in 2:12){
+  temp_k <- eval(parse(text=paste0("k",x)), .GlobalEnv)
+  print("Accuracy of")
+  print(paste0("k",x))
+  print(mean(temp_k$centers))
+  cat("\n")
+}
+
+k_clusers <- list(k2,k3,k4,k5,k6,k7,k8,k9,k10,k11,k12)
+
+k_dists <- sapply(k_clusers, function(x) mean(x$centers))
+k_dists
+
+dist_data <- cbind(2:12, k_dists)
+colnames(dist_data) <- c("x", "y")
+dist_data <- data.frame(dist_data)
+dist_data
+
+
+ggplot(dist_data, aes(x=x,y=y)) + geom_line()
+
+```
+
+## Observation: The elbow of this plot is present between 7.5 to 8 
