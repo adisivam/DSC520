@@ -2,8 +2,13 @@
 title: "Final Project - Covid-19 Analysis"
 author: "Kesav Adithya Venkidusamy"
 date: "11/16/2021"
-output: pdf_document
+output: 
+  pdf_document:
+    fig_caption: true
+    number_sections: true
 ---
+
+\tableofcontents
 
 # *Introduction*
 
